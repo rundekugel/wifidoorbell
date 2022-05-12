@@ -16,6 +16,7 @@ else:
   machine.UART.port = portnam
 
 emptybuf = b""
+pinnum = 2
 
 class globs:
   sock = None
@@ -126,6 +127,8 @@ def main():
   client.loop_start()
   globs.uartbuf = globs.uart0.read()
 
+  globs.pr = machine.Pin(pinnum, machine.Pin.OUT, 0);
+
   bufwasempty=1
   while globs.doit:
     while 1:
@@ -147,6 +150,7 @@ def main():
     elif globs.relais in globs.uartbuf:
       client.publish(globs.topicpre + "rx", "relais")
       globs.uartbuf = emptybuf
+      globs.pr.on() ; time.sleep(1); globs.pr.off()
 
     if not globs.uartbuf:
       bufwasempty=1
@@ -157,6 +161,7 @@ def main():
   globs.sock.close()
   print("done.")
 
-main()
+if __name__ == "__main__":
+  main()
 
-
+#eof
