@@ -56,6 +56,8 @@ def on_message(p1, p2, msg=None): #this is from std, not micro-python
     topic,payload = msg.topic, msg.payload
   if isinstance( payload, bytes):
       payload = payload.decode()
+  if isinstance( topic, bytes):
+      topic = topic.decode()
   if globs.verbosity>1:
     print(topic + " " + str(payload))
   if topic == "comu/cmd":
@@ -128,6 +130,7 @@ def main():
   globs.sock.bind(("127.0.0.1", globs.sockport))  #only ip allowed
   globs.sock.listen(1)
   globs.sock.setblocking(0)
+  globs.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
   globs.client = mqtt(client_id="tw",server="s3")
   client = globs.client
@@ -187,7 +190,8 @@ def main():
     else:
       client.loop()
   #end
-  globs.sockL.close()
+  if globs.sockL:
+    globs.sockL.close()
   globs.sock.close()
   print("done.")
 
