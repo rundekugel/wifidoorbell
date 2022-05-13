@@ -1,10 +1,15 @@
+#!/usr/bin/env python3
 """ritto door bell test"""
 
+import sys
 import socket
 import machine
 import time
 import network 
-import os
+import uos as os
+
+__version__ = "0.5.1"
+__author__  = "gaul1@lifesim.de"
 
 up = 1
 if up:
@@ -12,12 +17,13 @@ if up:
   portnam = 0
 else:
   import paho.mqtt.client as mqtt
-  portnam = "com7"
+  portnam = None #"com7"
   machine.UART.port = portnam
 
 emptybuf = b""
 relpinnum = 2
 ledpinnum = 2
+
 
 class globs:
   sock = None
@@ -38,6 +44,7 @@ class globs:
   uartbufmax = 1024
   uartbaud = 31250
   sockport = 8888
+  p13override = False
 
 
 def on_connect(client, userdata, flags, rc):
@@ -119,6 +126,8 @@ def doSock(txmsg=b""):
         globs.verbosity = int(rx[2])
       elif rx[:2]==b"??":
         globs.sockL.send(b"ack:"+rx)
+      elif rx[:2]==b"m:":
+        globs.client.publish(globs.topicpre+"info", rx[2:])
       elif rx==b"":
         globs.sockL.close()
         globs.sockL=0
@@ -143,13 +152,17 @@ def detach():
   
 def main():
   led(1)
+  if globs.verbosity>1: print("python V:"+sys.version)
+  
   if up:
-    if machine.Pin(13, machine.Pin.IN).value() == 0: return
+    if not globs.p13override and (machine.Pin(13, machine.Pin.IN).value() == 0): return
     if globs.uartnum is not None:
       if globs.uartnum==0:  detach()
       globs.uart= machine.UART(globs.uartnum, baudrate=globs.uartbaud, timeout=1)
   else:
     globs.uart = machine.UART(port=portnam, baudrate=globs.uartbaud, timeout=1)
+    
+    
   led(0)
   globs.sock = socket.socket()
   globs.sock.bind(("", globs.sockport))  #only ip allowed
@@ -177,22 +190,25 @@ def main():
     d={"connected":1,"ip":network.WLAN(network.STA_IF).ifconfig()[0]}
     client.publish(globs.topicpre + "stat", str(d))
   
-  if globs.uart:  
-    globs.uartbuf = globs.uart.read()
-
-  globs.pr = machine.Pin(relpinnum, machine.Pin.OUT, 0);
+  globs.pr = machine.Pin(relpinnum, machine.Pin.OUT); globs.pr.value(0)
 
   bufwasempty=1
   while globs.doit:
     led(1)
+    timeout=100
     while 1:
       if globs.uart:
-        rx = globs.uart.read()
+        try:
+          rx = globs.uart.read()
+        except:
+          rx=""
       else: rx=""
       if not rx: break
       globs.uartbuf += rx
       if len(rx) > globs.uartbufmax:
         rx = rx[205:]
+      timeout-=1
+      if timeout<1: break
     if rx and bufwasempty:
       client.publish(globs.topicpre + "rx", "newData")
       bufwasempty = 0
