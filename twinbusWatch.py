@@ -5,6 +5,7 @@
 import socket
 import machine
 import time
+import network 
 
 up = 1
 if up:
@@ -151,7 +152,8 @@ def main():
     client.set_callback(on_message)
     client.connect()
     client.subscribe(globs.topicpre+"cmd")
-    client.publish(globs.topicpre + "stat", "connected")
+    d={"connected":1,"ip":network.WLAN(network.STA_IF).ifconfig()[0]}
+    client.publish(globs.topicpre + "stat", str(d))
   
   if globs.uart:  
     globs.uartbuf = globs.uart.read()
