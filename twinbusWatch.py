@@ -130,7 +130,7 @@ def main():
     globs.uart = machine.UART(port=portnam, baudrate=32000, timeout=1)
 
   globs.sock = socket.socket()
-  globs.sock.bind(("127.0.0.1", globs.sockport))  #only ip allowed
+  globs.sock.bind(("", globs.sockport))  #only ip allowed
   globs.sock.listen(1)
   globs.sock.setblocking(0)
   globs.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
