@@ -1,11 +1,10 @@
-#!/bin/usr/env python3
-
 """ritto door bell test"""
 
 import socket
 import machine
 import time
 import network 
+import os
 
 up = 1
 if up:
@@ -17,7 +16,7 @@ else:
   machine.UART.port = portnam
 
 emptybuf = b""
-pinnum = 2
+relpinnum = 2
 ledpinnum = 2
 
 class globs:
@@ -33,10 +32,11 @@ class globs:
   oben = b"testO"
   unten = b"testU"
   relais = b"testR"
-  uartnum = None
+  uartnum = 0
   uart = None
   uartbuf = emptybuf
   uartbufmax = 1024
+  uartbaud = 31250
   sockport = 8888
 
 
@@ -79,7 +79,7 @@ def doSock(txmsg=b""):
     try:
       a,ip = globs.sock.accept()
     except Exception as e:
-      if globs.verbosity>3:
+      if e != 0 and globs.verbosity>3:
         print(str(e))
     if a:
       globs.sockL = a
@@ -92,8 +92,8 @@ def doSock(txmsg=b""):
       else:
         r=globs.sockL.send(globs.uartbuf)
         globs.uartbuf = globs.uartbuf[r:]
-        # globs.uartbuf = emptybuf
-        print(r)
+        if globs.verbosity>3:
+          print(r)
     except:
       globs.sockL.close()
       globs.sockL=0
@@ -113,28 +113,50 @@ def doSock(txmsg=b""):
         globs.doit = 0
       elif b"relais!" in rx:
         relais(1); time.sleep(1); relais(0);
+      elif rx[:2]==b"u:":
+        globs.uartbuf += rx[2:].decode()
+      elif rx[:2]==b"v=":
+        globs.verbosity = int(rx[2])
+      elif rx[:2]==b"??":
+        globs.sockL.send(b"ack:"+rx)
+      elif rx==b"":
+        globs.sockL.close()
+        globs.sockL=0
+        if globs.verbosity >1:
+          print("sock closed.")
+          globs.client.publish(globs.topicpre+"info", "sock closed.")
         
   #todo: check if connection still active
 
 def led(onoff):
-  machine.Pin(ledpinnum, machine.Pin.OUT, not onoff); # led is inverse
+  machine.Pin(ledpinnum, machine.Pin.OUT).value( not onoff) # led is inverse
 
 def relais(onoff):
-  machine.Pin(pinnum, machine.Pin.OUT, onoff); # 
+  machine.Pin(relpinnum, machine.Pin.OUT).value(onoff) # 
 
+def reattach():
+  uart = machine.UART(0, 115200)
+  os.dupterm(uart, 1)
+  
+def detach():
+  os.dupterm(None, 1)  
+  
 def main():
+  led(1)
   if up:
+    if machine.Pin(13, machine.Pin.IN).value() == 0: return
     if globs.uartnum is not None:
-      globs.uart= machine.UART(globs.uartnum, baudrate=32000, timeout=1)
+      if globs.uartnum==0:  detach()
+      globs.uart= machine.UART(globs.uartnum, baudrate=globs.uartbaud, timeout=1)
   else:
-    globs.uart = machine.UART(port=portnam, baudrate=32000, timeout=1)
-
+    globs.uart = machine.UART(port=portnam, baudrate=globs.uartbaud, timeout=1)
+  led(0)
   globs.sock = socket.socket()
   globs.sock.bind(("", globs.sockport))  #only ip allowed
   globs.sock.listen(1)
   globs.sock.setblocking(0)
   globs.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
+  led(1)
   globs.client = mqtt(client_id="tw",server="s3")
   client = globs.client
   client.on_connect = on_connect
@@ -158,10 +180,11 @@ def main():
   if globs.uart:  
     globs.uartbuf = globs.uart.read()
 
-  globs.pr = machine.Pin(pinnum, machine.Pin.OUT, 0);
+  globs.pr = machine.Pin(relpinnum, machine.Pin.OUT, 0);
 
   bufwasempty=1
   while globs.doit:
+    led(1)
     while 1:
       if globs.uart:
         rx = globs.uart.read()
@@ -169,7 +192,7 @@ def main():
       if not rx: break
       globs.uartbuf += rx
       if len(rx) > globs.uartbufmax:
-        rx = rx[65:]
+        rx = rx[205:]
     if rx and bufwasempty:
       client.publish(globs.topicpre + "rx", "newData")
       bufwasempty = 0
@@ -188,14 +211,18 @@ def main():
     if not globs.uartbuf:
       bufwasempty=1
     doSock()
+    led(0)
     time.sleep(.2)
     if up:
       client.check_msg()
     else:
       client.loop()
   #end
+  globs.uart.close()
+  led(0)
   if globs.sockL:
     globs.sockL.close()
+  reattach()
   globs.sock.close()
   print("done.")
 
