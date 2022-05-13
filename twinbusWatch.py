@@ -23,7 +23,7 @@ class globs:
   sock = None
   sockL = None
   client = None
-  verbosity = 3
+  verbosity = 4
   server="s3"
   port=1883
   #topic="comu/"
@@ -69,6 +69,7 @@ def on_message(p1, p2, msg=None): #this is from std, not micro-python
     if len(m1)>1: m1,m2 =m1
     if m1=="setu": globs.unten = m2
     if m1=="seto": globs.oben = m2
+    if m1=="relais!": relais(1); time.sleep(1); relais(0);
 
 def doSock(txmsg=b""):
   gl = globs.sockL
@@ -76,8 +77,9 @@ def doSock(txmsg=b""):
     a=None
     try:
       a,ip = globs.sock.accept()
-    except:
-      pass
+    except Exception as e:
+      if globs.verbosity>3:
+        print(str(e))
     if a:
       globs.sockL = a
       if globs.verbosity:
