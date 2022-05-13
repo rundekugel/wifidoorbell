@@ -150,11 +150,21 @@ def reattach():
 def detach():
   os.dupterm(None, 1)  
   
+def tryWlan(timeout=5):  
+  while 1:
+    ip = network.WLAN(network.STA_IF).ifconfig()[0]
+    if ip != "0.0.0.0": return timeout
+    time.sleep(1)
+    led(timeout &1)
+    timeout-=1
+    if timeout <1: return 0
+  
 def main():
   led(1)
   if globs.verbosity>1: print("python V:"+sys.version)
   
   if up:
+    if not tryWlan(): return
     if not globs.p13override and (machine.Pin(13, machine.Pin.IN).value() == 0): return
     if globs.uartnum is not None:
       if globs.uartnum==0:  detach()
@@ -244,5 +254,6 @@ def main():
 
 if __name__ == "__main__":
   main()
-
+  reattach()
+  
 #eof
