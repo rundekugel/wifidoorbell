@@ -78,6 +78,7 @@ def on_message(p1, p2, msg=None): #this is from std, not micro-python
     if m1=="setu": globs.unten = m2
     if m1=="seto": globs.oben = m2
     if m1=="relais!": relais(1); time.sleep(1); relais(0);
+    if m1=="verbose": globs.verbosity = int(m2)
 
 def doSock(txmsg=b""):
   gl = globs.sockL
@@ -248,12 +249,18 @@ def main():
     else:
       client.loop()
   #end
+  if client:
+    client.publish(globs.topicpre + "info", "stop")
   globs.uart.close()
+  if client:
+    client.publish(globs.topicpre + "info", "end")
   led(0)
   if globs.sockL:
     globs.sockL.close()
   reattach()
   globs.sock.close()
+  print("sock closed.wait...")
+  time.sleep(1)
   print("done.")
 
 if __name__ == "__main__":
