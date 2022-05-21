@@ -159,6 +159,11 @@ def tryWlan(timeout=5):
     timeout-=1
     if timeout <1: return 0
   
+def setWlan(ssid=None, pwd=None):
+  sta = network.WLAN(network.STA_IF)
+  sta.connect(ssid, pwd)
+  return sta.ifconfig()
+  
 def main():
   led(1)
   if globs.verbosity>1: print("python V:"+sys.version)
@@ -171,7 +176,6 @@ def main():
       globs.uart= machine.UART(globs.uartnum, baudrate=globs.uartbaud, timeout=1)
   else:
     globs.uart = machine.UART(port=portnam, baudrate=globs.uartbaud, timeout=1)
-    
     
   led(0)
   globs.sock = socket.socket()
