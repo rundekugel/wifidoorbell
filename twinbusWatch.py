@@ -79,8 +79,9 @@ def on_message(p1, p2, msg=None): #this is from std, not micro-python
       print(topic + " " + str(payload))
     if "exit!" == payload:
       globs.doit=0
-    m1,m2 = payload.split(':',1)  ,""
-    if len(m1)>1: m1,m2 =m1
+    if ":" in payload:
+      m1,m2 = payload.split(':',1)
+    else: m1,m2 = payload, ""
     if m1=="setu": globs.unten = m2
     if m1=="seto": globs.oben = m2
     if m1=="relais!": relais(1); time.sleep(1); relais(0);
@@ -148,7 +149,7 @@ def doSock(txmsg=b""):
   #todo: check if connection still active
 
 def getInfo():
-  info= globsToString()[:-1] +f",ip:{network.WLAN(network.STA_IF).ifconfig()[0]}"+"}"
+  info= globsToString()[:-1] +f", ip:'{network.WLAN(network.STA_IF).ifconfig()[0]}'"+"}"
   return info
 
 def led(onoff):
