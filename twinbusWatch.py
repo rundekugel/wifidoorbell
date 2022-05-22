@@ -8,7 +8,7 @@ import time
 import network 
 import uos as os
 
-__version__ = "0.5.1"
+__version__ = "0.7.0"
 __author__  = "gaul1@lifesim.de"
 
 up = 1
@@ -149,7 +149,7 @@ def doSock(txmsg=b""):
   #todo: check if connection still active
 
 def getInfo():
-  info= globsToString()[:-1] +f", ip:'{network.WLAN(network.STA_IF).ifconfig()[0]}'"+"}"
+  info= globsToString()[:-1] +", ip:'" + str(network.WLAN(network.STA_IF).ifconfig()[0]) + "'}"
   return info
 
 def led(onoff):
