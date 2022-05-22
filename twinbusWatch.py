@@ -162,6 +162,7 @@ def tryWlan(timeout=5):
   
 def setWlan(ssid=None, pwd=None):
   sta = network.WLAN(network.STA_IF)
+  sta.active(1)
   sta.connect(ssid, pwd)
   return sta.ifconfig()
   
@@ -172,6 +173,7 @@ def main():
   if up:
     if not tryWlan(): return
     if not globs.p13override and (machine.Pin(13, machine.Pin.IN).value() == 0): return
+    if not globs.p13override and (machine.Pin(0, machine.Pin.IN).value() == 0): return
     if globs.uartnum is not None:
       if globs.uartnum==0:  detach()
       globs.uart= machine.UART(globs.uartnum, baudrate=globs.uartbaud, timeout=1)
