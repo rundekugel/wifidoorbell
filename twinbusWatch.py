@@ -46,6 +46,12 @@ class globs:
   sockport = 8888
   p13override = False
 
+def globsToString():
+  d={}
+  gd=globs.__dict__
+  for i in globs.__dict__:
+    if i[0]!="_": d[i]=gd[i]
+  return str(d)
 
 def on_connect(client, userdata, flags, rc):
   if globs.verbosity:
@@ -79,6 +85,7 @@ def on_message(p1, p2, msg=None): #this is from std, not micro-python
     if m1=="seto": globs.oben = m2
     if m1=="relais!": relais(1); time.sleep(1); relais(0);
     if m1=="verbose": globs.verbosity = int(m2)
+    if m1=="info": globs.client.publish(globs.topicpre+"info", getInfo())
 
 def doSock(txmsg=b""):
   gl = globs.sockL
@@ -129,6 +136,8 @@ def doSock(txmsg=b""):
         globs.sockL.send(b"ack:"+rx)
       elif rx[:2]==b"m:":
         globs.client.publish(globs.topicpre+"info", rx[2:])
+      elif rx[:4]==b"info":
+        globs.sockL.send(getInfo().encode())
       elif rx==b"":
         globs.sockL.close()
         globs.sockL=0
@@ -137,6 +146,10 @@ def doSock(txmsg=b""):
           globs.client.publish(globs.topicpre+"info", "sock closed.")
         
   #todo: check if connection still active
+
+def getInfo():
+  info= globsToString()[:-1] +f",ip:{network.WLAN(network.STA_IF).ifconfig()[0]}"+"}"
+  return info
 
 def led(onoff):
   machine.Pin(ledpinnum, machine.Pin.OUT).value( not onoff) # led is inverse
@@ -251,15 +264,12 @@ def main():
     else:
       client.loop()
   #end
-  if client:
-    client.publish(globs.topicpre + "info", "stop")
-  globs.uart.close()
+  reattach()
   if client:
     client.publish(globs.topicpre + "info", "end")
   led(0)
   if globs.sockL:
     globs.sockL.close()
-  reattach()
   globs.sock.close()
   print("sock closed.wait...")
   time.sleep(1)
