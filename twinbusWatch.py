@@ -272,6 +272,8 @@ def main():
   if globs.sockL:
     globs.sockL.close()
   globs.sock.close()
+  globs.uart=None
+  globs.doit = True # enable start again
   print("sock closed.wait...")
   time.sleep(1)
   print("done.")
