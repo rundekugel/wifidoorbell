@@ -8,7 +8,7 @@ import time
 import network 
 import uos as os
 
-__version__ = "0.7.0"
+__version__ = "0.7.1"
 __author__  = "gaul1@lifesim.de"
 
 up = 1
@@ -182,7 +182,7 @@ def setWlan(ssid=None, pwd=None):
   
 def main():
   led(1)
-  if globs.verbosity>1: print("python V:"+sys.version)
+  if globs.verbosity>1: print("TwinbusWatch V"+__version__+" python V:"+sys.version)
   
   if up:
     if not tryWlan(): return
@@ -273,9 +273,13 @@ def main():
     globs.sockL.close()
   globs.sock.close()
   globs.uart=None
-  globs.doit = True # enable start again
+  globs.client.disconnect()
   print("sock closed.wait...")
   time.sleep(1)
+  globs.sockL = None
+  globs.sock = None
+  globs.doit = True # enable start again
+  globs.client = None
   print("done.")
 
 if __name__ == "__main__":
