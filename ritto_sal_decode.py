@@ -85,11 +85,15 @@ def main():
             print(f'{frame[0]:9.4f} s  Einzelimpuls'); continue
         print(f'{frame[0]:9.4f} s  Telegramm, {1e3*(frame[-1]-frame[0]):.1f} ms')
         for k, part in enumerate(split(frame, 5e-3)):
-            # Teil 2 wird wegen des 124-us-Rasters mit groesserem Fenster gebuendelt
-            bursts = split(part, 100e-6 if k == 0 else 140e-6)
-            if k:
-                bursts = bursts[1:]         # Praeambel (reiner 8-kHz-Abschnitt) ueberspringen
-            groups = decode_part(bursts, k)
+            # Typ bestimmen: starker Rahmen beginnt mit ~10 ms Praeambel im 124-us-Raster
+            head = [b - a for a, b in zip(part[:40], part[1:41])]
+            strong = sum(1 for d in head if 100e-6 < d < 140e-6) > 30
+            typ = 1 if strong else 0
+            bursts = split(part, 140e-6 if strong else 100e-6)
+            if strong:
+                bursts = bursts[1:]         # Praeambel ueberspringen
+            groups = decode_part(bursts, typ)
+            label = 'stark' if strong else 'schwach'
             out = []
             for g in groups:
                 bits = g.replace('S', '0').replace('L', '1')
@@ -98,7 +102,7 @@ def main():
                     out.append(f'{bits[:8]}|{bits[8]} (0x{int(bits[:8],2):02X}, {par})')
                 else:
                     out.append(bits)
-            print(f'   Teil {k+1}: ' + '  '.join(out))
+            print(f'   Teil {k+1} ({label}): ' + '  '.join(out))
 
 if __name__ == '__main__':
     main()
